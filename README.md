@@ -1,24 +1,62 @@
-# Steam Link for Roku — feasibility status
+# Steam Link Roku Bridge — protótipo experimental
 
-**This repository is not a functional Steam Link client.** The current BrightScript/SceneGraph files are only an HLS receiver/UI experiment. They do not connect to Steam, pair with a Steam host, decode the Steam Remote Play stream, carry game audio, or provide proper controller support.
+Este repositório agora inclui um canal Roku sideloadável e um companion para PC. O companion captura o desktop com FFmpeg, publica uma playlist HLS para o player SceneGraph da Roku e envia os comandos do controle remoto do Roku ao PC.
 
-## Why the Android-style client cannot be produced as a normal Roku sideload
+## O que foi implementado
 
-The standard Roku app platform exposes BrightScript and SceneGraph APIs in a sandbox. A working Steam Link client needs the real-time Remote Play client stack, low-latency audio/video decoding and transport, host discovery/pairing, and controller input. Roku's public app environment does not provide a direct way to package and run the existing Android Steam Link app or its native runtime as a sideloaded channel.
+- Validação da conexão do Roku com o PC via endpoint `/health`.
+- Reprodução de HLS no player do Roku.
+- Captura de desktop por FFmpeg em Linux (X11 ou tentativa via PipeWire) e Windows (captura básica).
+- Áudio de saída via monitor PulseAudio/PipeWire no Linux, quando detectado.
+- Entrada remota com token de sessão; no Linux tenta criar controle virtual via `python-evdev`/`uinput`, com fallback de teclado via `xdotool`.
+- Empacotamento do canal para sideload pela Roku Development Application Installer.
 
-Steam Link itself is proprietary software; Valve documents supported apps/platforms such as Android, Samsung TVs, and Raspberry Pi, but does not provide a Roku client or public source code for porting the full client. Sources: [Roku platform architecture](https://developer.roku.com/dev/docs/dev-environment), [Steam Link supported platforms](https://help.steampowered.com/pt-br/faqs/view/7BE7-BB7D-D904-03AE), [Steam Link for Android](https://help.steampowered.com/pt-br/faqs/view/7112-CD02-7B57-59F8).
+## Limitação importante
 
-An HLS screen-capture relay can display a PC image on a Roku, but it is not equivalent to Steam Link: latency, audio synchronization, and input support are inadequate for responsive gameplay. This repo intentionally does not claim otherwise.
+**Isto não é o cliente Steam Link nativo e não é equivalente ao Steam Link de verdade.** O Roku OS não executa APK Android ou bibliotecas nativas arbitrárias dentro de um canal sideload e não suporta playback WebRTC. O protocolo de streaming de jogos requer transporte de baixa latência, sockets TCP/UDP e uma cadeia real de decodificação/controle. Esta ponte usa HLS: haverá latência perceptível, e o controle remoto do Roku não substitui um gamepad completo. É uma implementação experimental para visualizar/controlar o desktop, não uma solução garantida para jogos de ação.
 
-## What this repository currently contains
+Referências técnicas:
+- Roku: https://partnersuccess.roku.com/hc/en-us/articles/360060167853-Does-Roku-support-WebRTC-and-Play-WebRTC-streams
+- Moonlight FAQ: https://github.com/moonlight-stream/moonlight-docs/wiki/Frequently-Asked-Questions
+- Roku SceneGraph Video: https://developer.roku.com/dev/docs/video-player
 
-- A SceneGraph settings screen for a base server URL and HLS URL.
-- A basic `/health` check.
-- HLS playback when an external service supplies a compatible playlist.
-- Best-effort posting of Roku remote button events to an external service.
+## Executar no CachyOS / Arch Linux
 
-There is no companion service in this repository. The ZIP generated from these files should not be described as a working Steam Link port.
+Instale as dependências:
 
-## For actual Steam Remote Play on this TV
+```bash
+sudo pacman -S --needed ffmpeg xdotool python-evdev acl
+```
 
-Use a device connected through HDMI that supports the Steam Link app (for example, a compatible Android TV device or Raspberry Pi). That lets the client run on a supported platform instead of trying to execute it inside Roku OS.
+Para gamepad virtual via uinput, carregue o módulo e conceda acesso ao usuário nesta sessão:
+
+```bash
+sudo modprobe uinput
+sudo setfacl -m "u:$USER:rw" /dev/uinput
+```
+
+Em uma sessão X11, rode:
+
+```bash
+python companion/bridge.py --capture x11grab --size 1280x720 --fps 30
+```
+
+Em Wayland, tente o backend PipeWire se o FFmpeg instalado tiver essa entrada habilitada:
+
+```bash
+python companion/bridge.py --capture pipewire --size 1280x720 --fps 30
+```
+
+O áudio tenta usar o monitor do sink padrão via pactl. Para desligar o áudio, acrescente `--no-audio`. A captura via PipeWire depende dos recursos do build do FFmpeg e da sessão gráfica.
+
+Descubra o IP local do PC. No canal Roku, configure o servidor como `http://IP-DO-PC:8765`, valide a conexão e selecione reproduzir. PC e TV devem estar na mesma rede local confiável; libere TCP/8765 no firewall se necessário. O token para enviar comandos é entregue ao app pelo endpoint `/health` e só vale enquanto o companion estiver em execução.
+
+## Gerar o ZIP de sideload
+
+Com `zip` instalado:
+
+```bash
+bash scripts/package.sh
+```
+
+O arquivo será `dist/steam-link-roku.zip`. Ative o modo de desenvolvedor no Roku e envie esse ZIP pelo Development Application Installer. O companion roda separadamente no PC.
