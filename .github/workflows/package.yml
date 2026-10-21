@@ -1,4 +1,4 @@
-name: Package Roku sideload ZIP
+name: Package Roku sideload ZIP and PC companion
 
 on:
   push:
@@ -11,13 +11,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Check Python syntax
+        run: python -m py_compile companion/bridge.py
       - name: Install zip
         run: sudo apt-get update && sudo apt-get install -y zip
-      - name: Package app
+      - name: Package Roku app
         run: zip -r steam-link-roku.zip manifest source components
-      - name: Upload sideload ZIP
+      - name: Package PC companion
+        run: cd companion && zip ../steam-link-roku-companion.zip bridge.py README.md
+      - name: Upload packages
         uses: actions/upload-artifact@v4
         with:
-          name: steam-link-roku
-          path: steam-link-roku.zip
+          name: steam-link-roku-packages
+          path: |
+            steam-link-roku.zip
+            steam-link-roku-companion.zip
           if-no-files-found: error
