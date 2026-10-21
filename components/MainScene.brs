@@ -249,7 +249,7 @@ end sub
 
 sub onInputTaskState(event as Object)
     task = event.GetRoSGNode()
-    if task <> invalid and task.State = "stop" then
+    if task <> invalid and (task.State = "stop" or task.State = "done") then
         m.top.RemoveChild(task)
     end if
 end sub
