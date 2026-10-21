@@ -4,11 +4,13 @@ sub init()
     if m.baseUrl = invalid or m.baseUrl = "" then m.baseUrl = "http://192.168.1.100:8765"
 
     m.streamUrl = m.registry.Read("streamUrl")
-    if m.streamUrl = invalid or m.streamUrl = "" then m.streamUrl = m.baseUrl + "/stream.m3u8"
+    if m.streamUrl = invalid or m.streamUrl = "" then m.streamUrl = m.baseUrl + "/live/index.m3u8"
 
     m.isPlaying = false
     m.pendingAction = ""
     m.healthTask = invalid
+    m.sessionToken = ""
+    m.streamReady = false
     m.keyboardDialog = invalid
     m.keyboardTarget = ""
 
@@ -84,9 +86,9 @@ sub onKeyboardSelected()
             else if Instr(1, value, " ") > 0 then
                 setStatus("A URL do servidor não pode conter espaços.", false)
             else
-                oldDefaultStream = m.baseUrl + "/stream.m3u8"
+                oldDefaultStream = m.baseUrl + "/live/index.m3u8"
                 m.baseUrl = removeTrailingSlash(value)
-                if m.streamUrl = oldDefaultStream then m.streamUrl = m.baseUrl + "/stream.m3u8"
+                if m.streamUrl = oldDefaultStream then m.streamUrl = m.baseUrl + "/live/index.m3u8"
                 m.registry.Write("baseUrl", m.baseUrl)
                 m.registry.Flush()
                 renderConfig()
@@ -167,6 +169,12 @@ sub onHealthResponse()
             succeeded = false
             setStatus("O servidor respondeu, mas não confirmou {""ok"":true}.", false)
         else
+            if parsed.token <> invalid and parsed.token <> "" then m.sessionToken = parsed.token
+            if parsed.streamReady <> invalid then
+                m.streamReady = parsed.streamReady
+            else
+                m.streamReady = true
+            end if
             if parsed.stream <> invalid and parsed.stream <> "" then
                 if isHttpUrl(parsed.stream) then
                     m.streamUrl = parsed.stream
@@ -186,9 +194,17 @@ sub onHealthResponse()
 
     if succeeded then
         if m.pendingAction = "play" then
-            startPlayback()
+            if m.streamReady then
+                startPlayback()
+            else
+                setStatus("Servidor encontrado, mas a playlist HLS ainda não está pronta. Confira a captura e o FFmpeg no PC.", false)
+            end if
         else
-            setStatus("Servidor validado. Endpoint /health respondeu corretamente.", true)
+            if m.streamReady then
+                setStatus("Servidor e stream HLS validados.", true)
+            else
+                setStatus("Servidor conectado; a playlist ainda não foi criada pelo FFmpeg.", false)
+            end if
         end if
     end if
     m.pendingAction = ""
@@ -242,6 +258,7 @@ sub sendInput(keyName as String, pressed as Boolean)
     if pressed then pressText = "true"
     body = "{" + Chr(34) + "key" + Chr(34) + ":" + Chr(34) + keyName + Chr(34) + "," + Chr(34) + "pressed" + Chr(34) + ":" + pressText + "}"
     task.body = body
+    task.authToken = m.sessionToken
     task.ObserveField("state", "onInputTaskState")
     m.top.AppendChild(task)
     task.Control = "RUN"
