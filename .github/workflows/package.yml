@@ -1,0 +1,23 @@
+name: Package Roku sideload ZIP
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install zip
+        run: sudo apt-get update && sudo apt-get install -y zip
+      - name: Package app
+        run: zip -r steam-link-roku.zip manifest source components
+      - name: Upload sideload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: steam-link-roku
+          path: steam-link-roku.zip
+          if-no-files-found: error
