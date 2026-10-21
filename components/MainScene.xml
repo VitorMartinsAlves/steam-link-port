@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="MainScene" extends="Scene">
+    <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+    <children>
+        <Rectangle id="background" width="1280" height="720" color="0x0B1020FF" />
+
+        <Label id="title" text="STEAM LINK  /  ROKU BRIDGE" translation="[72,48]" width="1136" height="60"
+            color="0xFFFFFFFF" font="font:LargeBoldSystemFont" />
+        <Label id="subtitle" text="Protótipo experimental para reprodução HLS em Roku" translation="[74,112]" width="1130" height="38"
+            color="0xAAB7D0FF" font="font:MediumSystemFont" />
+
+        <Group id="setupGroup" translation="[72,185]">
+            <Label id="serverLabel" text="Servidor: não configurado" translation="[0,0]" width="1130" height="32"
+                color="0xFFFFFFFF" font="font:MediumSystemFont" />
+            <Label id="streamLabel" text="Stream: não configurado" translation="[0,38]" width="1130" height="32"
+                color="0xAAB7D0FF" font="font:SmallSystemFont" />
+
+            <Button id="configureHostButton" text="Configurar servidor do PC" translation="[0,90]" width="430" height="58" />
+            <Button id="configureStreamButton" text="Configurar URL HLS" translation="[460,90]" width="430" height="58" />
+            <Button id="testButton" text="Validar conexão" translation="[0,166]" width="430" height="58" />
+            <Button id="playButton" text="Reproduzir stream" translation="[460,166]" width="430" height="58" />
+
+            <Label id="statusLabel" text="Configure um servidor que exponha /health, /stream.m3u8 e /input." translation="[0,250]"
+                width="1120" height="64" color="0xFFD166FF" font="font:MediumSystemFont" />
+            <Label id="noticeLabel" text="Isso não implementa o protocolo nativo Steam Remote Play. Veja o README." translation="[0,326]"
+                width="1120" height="54" color="0xAAB7D0FF" font="font:SmallSystemFont" />
+        </Group>
+
+        <Video id="video" width="1280" height="720" visible="false" />
+        <Label id="playbackHelp" text="BACK: voltar  |  Direcionais/OK: enviar eventos ao servidor configurado" translation="[48,666]"
+            width="1184" height="32" color="0xFFFFFFFF" font="font:SmallSystemFont" visible="false" />
+    </children>
+</component>
