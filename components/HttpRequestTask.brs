@@ -11,6 +11,9 @@ sub runRequest()
     if UCase(m.top.method) = "POST" then
         transfer.SetRequest("POST")
         transfer.AddHeader("Content-Type", "application/json")
+        if m.top.authToken <> invalid and m.top.authToken <> "" then
+            transfer.AddHeader("X-Bridge-Token", m.top.authToken)
+        end if
         response = transfer.PostFromString(m.top.body)
     else
         response = transfer.GetToString()
